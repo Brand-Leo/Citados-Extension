@@ -1,0 +1,65 @@
+{
+  "name": "citados-project",
+  "displayName": "Citados-Project",
+  "description": "Citation Hub for VS Code – one-stop manager for multi-format references. Drop in PDFs,     BibTeX, URLs or raw text and the extension auto-extracts titles, authors, year and DOI, stores everything in a single JSON database and lets you insert citations in any open document with IntelliSense. Supports APA, MLA, Chicago and custom CSL styles, keeps references synced across workspaces, and auto-generates a formatted bibliography at the bottom of your file. No external apps, no LaTeX required—just cite, write and publish faster inside Code.”",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.106.1"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "citados-project.extraer_texto",
+        "title": "Saludar"
+      },
+      {
+        "command": "semanticsearch",
+        "title": "Search in semantic schoolar"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "citados-project.extraer_texto",
+        "key": "ctrl+alt+t",
+        "when": "editorLangId == markdown || editorLangId == plaintext"
+      },
+      {
+        "command": "semanticsearch",
+        "key": "ctrl+alt+a",
+        "when": "(editorLangId == markdown || editorLangId == plaintext) && editor.hasSelection"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "webpack",
+    "watch": "webpack --watch",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "@types/vscode": "^1.106.1",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2",
+    "eslint": "^9.39.1",
+    "ts-loader": "^9.5.4",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.3",
+    "webpack": "^5.102.1",
+    "webpack-cli": "^6.0.1"
+  },
+  "dependencies": {
+    "semanticscholarjs": "^1.0.4"
+  }
+}
