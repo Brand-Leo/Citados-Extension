@@ -1,89 +1,41 @@
-import * as fs from 'fs';
 import * as vscode from 'vscode';
-import { showSearchPanel } from './display';
+import { Config, TextSelector, PromptGenerator } from './core';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-
-	console.log('Congratulations, your extension "citados-project" is now active!');
-	vscode.window.showInformationMessage('Extension "lazy-bib" is now active!');
-
-    const disp2 = vscode.commands.registerCommand('semanticsearch',async() => {
-        const editor = vscode.window.activeTextEditor;
-        if (!editor) { return;}
-
-// selected es el texto seleccionado
-    const selected = editor.document.getText(editor.selection);
-    if(!selected.trim()) { 
-        vscode.window.showWarningMessage('Select some text first');
-        return;
+  // Comando: Generar Prompt
+  const generateCmd = vscode.commands.registerCommand('text-prompt-generator.generate', async () => {
+    const text = TextSelector.getSelected();
+    if (!text) {
+      vscode.window.showWarningMessage('Selecciona texto primero');
+      return;
     }
-    showSearchPanel(context,selected);
-        });
 
-	const disp = vscode.commands.registerCommand('citados-project.extraer_texto', () => {
-	let editor = vscode.window.activeTextEditor;
+    const instruction = await vscode.window.showInputBox({ prompt: 'Instrucciones adicionales (opcional)' });
 
-if (!editor) {return;}
-	
-	let selection = editor.selection;
-	// text es el texto seleccionado
-	let text = editor.document.getText(selection);
-	vscode.window.showInformationMessage('Texto seleccionado: ' + text);	
-	
-	let id : string = "";
-	//pensaba en generar un string aleatorio como id
-    id = Math.random().toString(36).substring(2, 10); // genera un id aleatorio de 8 caracteres
-    //pensaba en separar cada dupla de id, string en objetos en el json por diferentes documentos a analizar
-
-	appendRef(id,text);
-	saveRefToWorkspaceJSON(id,text);
-	});
-
-    context.subscriptions.push(disp);
-    context.subscriptions.push(disp2);
-}
-
-/**
- * Añade al final del documento activo una referencia en formato:
- *   ([id] string)
- * Si no hay editor abierto no hace nada.
- */
-export async function appendRef(id: string, text: string): Promise<void> {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) { return; }
-
-    const doc = editor.document;
-    const lastLine = doc.lineAt(doc.lineCount - 1);
-    const insertPos = new vscode.Position(lastLine.lineNumber, lastLine.text.length);
-
-    // Si el archivo no termina en \n añadimos uno antes
-    const needsNL = lastLine.text.length > 0;
-    const ref = `${needsNL ? '\n' : ''}([${id}] ${text})\n`;
-
-    await editor.edit((edit) => edit.insert(insertPos, ref));
-}
-
-export async function saveRefToWorkspaceJSON(id: string, text: string): Promise<void> {
-    const wf = vscode.workspace.workspaceFolders?.[0];
-    if (!wf) { return; } // no hay carpeta abierta
-
-    const jsonPath = vscode.Uri.joinPath(wf.uri, 'refs.json').fsPath;
-    let data: Record<string, string> = {};
-    
-    if (fs.existsSync(jsonPath)) {
-        try 
-        {
-            data = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+    await vscode.window.withProgress(
+      { location: vscode.ProgressLocation.Notification, title: 'Generando prompt...' },
+      async () => {
+        try {
+          const prompt = await PromptGenerator.generate(text, instruction);
+          await PromptGenerator.show(prompt);
+          vscode.window.showInformationMessage('✅ Prompt generado');
+        } catch (error) {
+          vscode.window.showErrorMessage(`Error: ${error instanceof Error ? error.message : 'Desconocido'}`);
         }
-         catch { /* si el json está roto empezamos de cero */ }
+      }
+    );
+  });
+
+  // Comando: Configurar API Key
+  const configCmd = vscode.commands.registerCommand('text-prompt-generator.config', async () => {
+    const key = await vscode.window.showInputBox({ prompt: 'Google Gemini API Key:', password: true });
+    if (key) {
+      await Config.setApiKey(key);
+      vscode.window.showInformationMessage('✅ API Key configurada');
     }
+  });
 
-    data[id] = text;                           // upsert
-    fs.writeFileSync(jsonPath, JSON.stringify(data, null, 2));
+  context.subscriptions.push(generateCmd, configCmd);
 }
-// This method is called when your extension is deactivated
+
 export function deactivate() {}
-
-
